@@ -17,7 +17,7 @@ Globals:
       LogFormat: JSON
   Api:
     TracingEnabled: true
-    
+
 Resources:
   SporticultureMainLambda:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
@@ -29,9 +29,9 @@ Resources:
       - x86_64
       Events:
         SporticultureOrderQueueEvent:
-          Type: SNS
+          Type: SQS
           Properties:
-            Topic: arn:aws:sqs:us-east-2:982081062525:SporticultureOrderQueue
+            Queue: arn:aws:sqs:us-east-2:982081062525:SporticultureOrderQueue
 
   ApplicationResourceGroup:
     Type: AWS::ResourceGroups::Group
