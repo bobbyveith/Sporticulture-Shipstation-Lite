@@ -44,50 +44,6 @@ def get_secret(secret_name):
         # Handle the error accordingly
         raise e
 
-
-def get_ss_credentials(uniqueID):
-    """
-    Retrieve ShipStation API credentials based on the provided uniqueID.
-
-    This function fetches the API key and secret from AWS Secrets Manager
-    based on the given uniqueID, which corresponds to different ShipStation
-    accounts. The credentials are stored in AWS Secrets Manager under the
-    following secret names:
-    
-    - 'stallion': "stallion_shipstation"
-    - 'winningstreak': "winningstreak_shipstation"
-    - 'sporticulture': "sporticulture_shipstation"
-
-    Parameters:
-    uniqueID (str): A string that identifies the ShipStation account for
-                    which credentials are to be retrieved. It must be one
-                    of 'stallion', 'winningstreak', or 'sporticulture'.
-
-    Returns:
-    tuple: A tuple containing the API key and API secret as strings.
-
-    Raises:
-    ValueError: If the uniqueID does not match any of the recognized ShipStation
-                accounts, a ValueError is raised indicating an invalid uniqueID.
-    """
-    
-    if uniqueID == 'stallion':
-        api_key, api_secret = get_secret("stallion_shipstation")
-        return api_key, api_secret
-        
-    elif uniqueID == 'winningstreak':
-        api_key, api_secret = get_secret("winningstreak_shipstation")
-        return api_key, api_secret
-    
-    elif uniqueID == 'sporticulture':
-        #api_key, api_secret = get_secret("sporticulture_shipstation")
-        api_key = "207fa45a64af440ba7c55118433ecec5"
-        api_secret = "1c849d229e43420c8121de3282ec3496"
-        return api_key, api_secret
-
-    else:
-        raise ValueError(f"Invalid uniqueID: {uniqueID}. Must be one of 'stallion', 'winningstreak', or 'sporticulture'.")
-
     
 
 def connect_to_api():
@@ -101,7 +57,7 @@ def connect_to_api():
     """
 
     # Account Credentials
-    api_key, api_secret = get_ss_credentials('sporticulture')
+    api_key, api_secret = get_secret('sporticulture_shipstation')
 
     # Connect to the ShipStation API
     ss_client = ShipStation(key=api_key, secret=api_secret)
@@ -327,8 +283,6 @@ def get_warehouse(warehouse_id):
         str or None: The name of the warehouse if found, otherwise `None`.
     """
     warehouse_id_map = {
-        280333: {'ss_account': 'stallion', 'warehouse': "SHIPPING DEPARTMENT"},
-        139108: {'ss_account': 'winningstreak', 'warehouse': "Winning Streak"},
         590152: {'ss_account': 'sporticulture', 'warehouse': "Sporticulture"},
         791225: {'ss_account': 'sporticulture', 'warehouse': "Stallion Wholesale"}
 
@@ -356,20 +310,6 @@ def get_store_name(store_id):
         str or None: The name of the store if found, otherwise `None`.
     """
     store_id_map = {
-        353017: {'ss_account': 'stallion', 'store_name': 'A - Manual Orders'},
-        788987: {'ss_account': 'stallion', 'store_name': 'Amazon Frameworks Store'},
-        805086: {'ss_account': 'stallion', 'store_name': 'Big Picture Cleveland'},
-        804881: {'ss_account': 'stallion', 'store_name': 'eBay Culture Framed Store'},
-        805085: {'ss_account': 'stallion', 'store_name': 'J & A Marketing'},
-        808375: {'ss_account': 'stallion', 'store_name': 'NAOMI EVENTS'},
-        804884: {'ss_account': 'stallion', 'store_name': 'Neverwuzpromotions Shopify Store'},
-        805207: {'ss_account': 'stallion', 'store_name': 'Pop Creations'},
-        771994: {'ss_account': 'stallion', 'store_name': 'Prinstant Etsy Store'},
-        771993: {'ss_account': 'stallion', 'store_name': 'Printstant Shopify Store'},
-        804918: {'ss_account': 'stallion', 'store_name': 'Sporticulture'},
-        805095: {'ss_account': 'stallion', 'store_name': 'UTP'},
-        216969: {'ss_account': 'winningstreak', 'store_name': 'Manual Orders'},
-        230434: {'ss_account': 'winningstreak', 'store_name': 'WS Amazon'},
         315885: {'ss_account': 'sporticulture', 'store_name': 'Amazon'},
         341077: {'ss_account': 'sporticulture', 'store_name': 'HSN'},
         332340: {'ss_account': 'sporticulture', 'store_name': 'JoAnn Fabric & Crafts'},
@@ -413,19 +353,7 @@ def send_order_to_queue(order_object, sqs_client):
         ValueError: If the shipstation_account is not found in the queue mapping.
     """
 
-    # Define the queue router mapping
-    queue_router_mapping = {
-        'Stallion': 'StallionOrderQueue',
-        'Winning Streak': 'WinningStreakOrderQueue',
-        'Sporticulture': 'SporticultureOrderQueue'
-    }
-
-    # Get the target queue based on the shipstation_account
-    shipstation_account = order_object.shipstation_account
-    queue_name = queue_router_mapping.get(shipstation_account)
-
-    if not queue_name:
-        return None
+    queue_name = 'SporticultureOrderQueue'
 
     # Get the URL of the target queue
     queue_url = sqs_client.get_queue_url(QueueName=queue_name)['QueueUrl']
@@ -441,7 +369,7 @@ def send_order_to_queue(order_object, sqs_client):
         },
         'ShipStationAccount': {
             'DataType': 'String',
-            'StringValue': shipstation_account
+            'StringValue': "Sporticulture"
         }
     }
 
