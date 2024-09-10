@@ -19,19 +19,115 @@ Globals:
     TracingEnabled: true
 
 Resources:
-  SporticultureMainLambda:
-    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+  SPFailedOrdersDLQ:
+    Type: AWS::SQS::Queue
     Properties:
-      CodeUri: main_lambda/
+      QueueName: FailedOrdersDLQ
+
+  SporticultureOrderQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: SporticultureOrderQueue
+      VisibilityTimeout: 480
+      RedrivePolicy:
+        maxReceiveCount: 3
+        deadLetterTargetArn: !GetAtt FailedOrdersDLQ.Arn
+    # Add a policy to allow sending messages to the DLQ
+    QueuePolicy:
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action: sqs:SendMessage
+            Resource: !GetAtt FailedOrdersDLQ.Arn
+            Principal: "*"
+
+  SPBatchLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: SQSFullAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: sqs:*
+                Resource: "*"
+        - PolicyName: SecretsManagerAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                Resource: "*"
+
+  SPBatchLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: sp_batch_lambda/
       Handler: app.lambda_handler
       Runtime: python3.12
       Architectures:
       - x86_64
+      ReservedConcurrentExecutions: 1
+      Timeout: 480
+      Role: !GetAtt SPBatchLambdaRole.Arn
+
+  SporticultureMainLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: SQSTriggerPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - lambda:InvokeFunction
+                Resource: !GetAtt SporticultureMainLambda.Arn
+              - Effect: Allow
+                Action: 
+                  - sqs:*
+                Resource: "*"
+        - PolicyName: SecretsManagerAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                Resource: "*"
+
+  SporticultureMainLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: sp_main_lambda/
+      Handler: app.lambda_handler
+      Runtime: python3.12
+      Architectures:
+      - x86_64
+      ReservedConcurrentExecutions: 1
       Events:
         SporticultureOrderQueueEvent:
           Type: SQS
           Properties:
             Queue: arn:aws:sqs:us-east-2:982081062525:SporticultureOrderQueue
+      Role: !GetAtt SporticultureMainLambdaRole.Arn
 
   ApplicationResourceGroup:
     Type: AWS::ResourceGroups::Group
@@ -40,6 +136,7 @@ Resources:
         Fn::Sub: ApplicationInsights-SAM-${AWS::StackName}
       ResourceQuery:
         Type: CLOUDFORMATION_STACK_1_0
+
   ApplicationInsightsMonitoring:
     Type: AWS::ApplicationInsights::Application
     Properties:
