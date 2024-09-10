@@ -1,0 +1,40 @@
+{
+    "accountNumber": {
+        "value": "699092487"
+    },
+    "rateRequestControlParameters": {
+        "returnTransitTimes": true
+    },
+    "requestedShipment": {
+        "shipper": {
+            "address": {
+                "postalCode": "",
+                "stateOrProvinceCode": "",
+                "countryCode": ""
+            }
+        },
+        "recipient": {
+            "address": {
+                "postalCode": "",
+                "stateOrProvinceCode": "",
+                "countryCode": ""
+            }
+        },
+        "shipDateStamp": "",
+        "pickupType": "USE_SCHEDULED_PICKUP",
+        "rateRequestType": [
+            "ACCOUNT",
+            "LIST"
+        ],
+        "requestedPackageLineItems": [
+            {
+                "weight": {
+                    "units": "LB",
+                    "value": ""
+                }
+            }
+        ]
+    },
+    "carrierCodes" : ["FDXE", "FDXG", "FXSP"]
+    
+}
