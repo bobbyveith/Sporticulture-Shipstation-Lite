@@ -1,7 +1,6 @@
 import xml.etree.ElementTree as ET
 import requests
 import os
-from dotenv import load_dotenv
 import xmltodict
 from datetime import datetime, timezone, timedelta
 import boto3

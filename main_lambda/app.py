@@ -15,7 +15,7 @@ def lambda_handler(event, context):
         parsed_body = json.loads(record_body)
         
         # Extract the queue URL and receipt handle
-        queue_url = "https://sqs.us-east-2.amazonaws.com/982081062525/SporticultureOrderQueue"
+        queue_url = "https://sqs.us-east-2.amazonaws.com/982081062525/StallionOrderQueue"
         receipt_handle = record['receiptHandle']
         
         # Pass the parsed body, queue URL, and receipt handle to the main function

@@ -179,7 +179,6 @@ def get_tag_id(tag_reason: str):
         "No SS Carrier Rates"   : 55812,
         "Expedited"             : 55476,
         "Amazon"                : 55813,
-        "No-Warehouse"          : 55827
     }
 
 

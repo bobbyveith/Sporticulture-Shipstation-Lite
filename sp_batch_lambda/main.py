@@ -29,7 +29,7 @@ def process_batch():
     if orders:
         for order_data_raw in orders:
             # Tag id for "Ready to Ship"
-            if 55809 in order_data_raw['tagIds']:
+            if order_data_raw.get('tagIds') is not None and 55809 in order_data_raw['tagIds']:
                 print(f"Order {order_data_raw['orderNumber']} is already processed")
                 continue
             
@@ -77,9 +77,10 @@ def process_batch():
             successful = functions.send_order_to_queue(order_object, sqs_client)
             if successful:
                 print(f"Order {order_object.order_key} sent to queue successfully")
-                break
+                continue
             else:
-                raise ValueError(f"Message failed to send to the queue for Order: {order_object.order_key}")
+                print(f"Order {order_object.order_key} failed to send to queue")
+                continue
 
 
 

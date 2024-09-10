@@ -41,7 +41,6 @@ def get_secret(secret_name):
 
 
 def initiate_oauth_flow(session):
-    load_dotenv()
     # Constants for UPS OAuth flow
     CLIENT_ID_UPS, CLIENT_SECRET_UPS = get_secret('upsAPICredentials')
     auth_value = f"{quote_plus(CLIENT_ID_UPS)}:{quote_plus(CLIENT_SECRET_UPS)}"

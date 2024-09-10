@@ -5,7 +5,7 @@ from fedex_api import get_fedex_best_rate, create_fedex_session
 
 from init_object import init_order
 
-import traceback
+import traceback, json
 
 
 
@@ -36,15 +36,19 @@ def initial_setup(order_data):
     fedex_session = create_fedex_session()
     ups_session = ups_api.create_ups_session()
 
-
-    
+    print(f"order_data: {order_data}")
+    # Initialize the order object
     order = init_order(order_data, ss_client, fedex_session, ups_session)
+
+    # Sets order attributes as needed
     functions.check_if_multi_order(order)
+
     successful = functions.set_product_dimensions(order)
     if not successful:
         tag = functions.tag_order(order, "No-Dims")
         print(f"[X] No dimensions available for order {order.order_number}")
         raise ValueError(f"No dimensions available for order {order.order_number}")
+    
     functions.set_ship_date(order)
 
     return order
@@ -233,7 +237,11 @@ def main(order_data):
 
 if __name__ == "__main__":
     try:
-        main()
+        file_path = "events/local_main.json"
+        with open(file_path, 'r') as file:
+            order_data = json.load(file)
+
+        main(order_data)
     except Exception as e:
         print("An error occurred:")
         print(traceback.format_exc())

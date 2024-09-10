@@ -72,7 +72,7 @@ class ShipStationCustomsItem(ShipStationBase):
         self.require_attribute("country_of_origin")
         self.require_attribute("description")
         self.require_type(value, Decimal)
-        if len(self.country_of_origin) is not 2:
+        if len(self.country_of_origin) != 2:
             raise AttributeError("country_of_origin must be two characters")
 
 
