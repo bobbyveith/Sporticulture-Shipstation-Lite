@@ -163,6 +163,7 @@ def main(order_data):
         if order.store_name == "Amazon" or order.store_name == "Sporticulture":
             successful = functions.update_warehouse_location(order)
             if not successful:
+                # Variable not needed, just returns bool so..
                 tag = functions.tag_order(order, "No-Warehouse")
                 return False
             

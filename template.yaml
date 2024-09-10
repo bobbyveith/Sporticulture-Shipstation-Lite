@@ -116,7 +116,7 @@ Resources:
   SporticultureMainLambda:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: sp_main_lambda/
+      CodeUri: main_lambda/
       Handler: app.lambda_handler
       Runtime: python3.12
       Architectures:
