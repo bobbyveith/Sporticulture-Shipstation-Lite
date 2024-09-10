@@ -1,11 +1,9 @@
-import json, os, time, pyfiglet, requests
-from shipstation_local.api import *
+import json, pyfiglet, requests
+from shipstation_api import *
 from classes import Order
 from pytz import timezone
-import re
 import boto3
 from botocore.exceptions import ClientError
-import json
 import datetime
 
 

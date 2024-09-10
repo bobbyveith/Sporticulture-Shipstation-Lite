@@ -1,0 +1,11 @@
+certifi==2024.8.30
+charset-normalizer==3.3.2
+idna==3.8
+jmespath==1.0.1
+pyfiglet==1.0.2
+python-dateutil==2.9.0.post0
+pytz==2024.1
+requests==2.32.3
+s3transfer==0.10.2
+six==1.16.0
+urllib3==2.2.2

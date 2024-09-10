@@ -1,0 +1,6 @@
+# Local Modules that should not be uploaded to lambda
+
+
+
+# Dependencies that should not be uploaded to lambda
+env/

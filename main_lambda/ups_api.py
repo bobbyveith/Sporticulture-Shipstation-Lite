@@ -2,9 +2,7 @@ import requests
 from urllib.parse import quote_plus
 import base64
 from datetime import datetime, timedelta
-from dotenv import load_dotenv
 import time
-import os
 import copy
 import boto3
 from botocore.exceptions import ClientError

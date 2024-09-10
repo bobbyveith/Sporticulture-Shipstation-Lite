@@ -1,9 +1,7 @@
 import json
 import requests
-import os
 from unicodedata import normalize
 from datetime import datetime
-from dotenv import load_dotenv
 import boto3
 from botocore.exceptions import ClientError
 
