@@ -6,8 +6,6 @@ import json
 
 import boto3
 
-from dataclasses import asdict
-import pprint
 
 
 # Initialize the SQS client to send order messages downstream the serverless architecture
@@ -16,20 +14,17 @@ sqs_client = boto3.client('sqs')
 
 def process_batch():
 
-    # account_name = functions.get_account_name(unique_id)
-    # batch_id = functions.get_batch_id(resource_url)
-
     # Create connnection with shipstation
     # Client has built in functionality. Module for client lives in shiptation_layer (lambda_layer)
     ss_client = functions.connect_to_api()
 
-    # List of orders (JSON Objects) from the shipstation account (according to the batch)
+    # Get total orders from the shipstation account 
     total_orders = functions.fetch_order_count(ss_client)
     print(f"Total orders: {total_orders}")
+
+    # Fetch all orders from the shipstation account
     orders = functions.fetch_orders_with_retry(ss_client, total_orders)
     print(f"Orders: {len(orders)}")
-    #orders = functions.temp_order() #use when testing without valid webhook batch available
-    #orders = functions.temp_sporticulture_order()
 
     if orders:
         for order_data_raw in orders:
@@ -37,6 +32,7 @@ def process_batch():
             if 55809 in order_data_raw['tagIds']:
                 print(f"Order {order_data_raw['orderNumber']} is already processed")
                 continue
+            
             # Convert keys from camelCase to snake_case
             order_data = convert_keys_to_snake_case(order_data_raw)
 
