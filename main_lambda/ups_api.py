@@ -307,80 +307,31 @@ def get_valid_rates(order, valid_services):
 
 
 
-def filter_best_option(sorted_options):
+
+def filter_for_single_stream(order, sorted_options):
     """
-    Filters and determines the best shipping option based on delivery date, price, and service code.
+    Filter and return the best shipping option for single stream orders.
 
-    This function processes a sorted list of shipping options to find the best option 
-    according to specified business logic. It includes additional logic to handle 
-    "UPS Ground Saver" service code by removing it if other options are less than $0.30 
-    more expensive and return earlier.
+    This function checks if the order is a single stream. If it is, and the first option in the 
+    sorted list of options is "UPS Ground Saver", it removes this option and returns the next best option.
+    Otherwise, it returns the first option in the sorted list.
 
-    Parameters:
-    sorted_options (list): A list of dictionaries representing the shipping options,
-                        sorted by price in ascending order. Each dictionary must
-                        contain the keys 'serviceCode', 'price', and 'deliveryDate', 
-                        where 'deliveryDate' is a datetime object.
+    Args:
+        order (object): An object representing the order, which must include:
+                        - `is_single_stream` (bool): Whether the order is a single stream.
+        sorted_options (list): A list of dictionaries representing sorted shipping options, 
+                            each containing at least a 'serviceCode' key.
 
     Returns:
-    dict: The best shipping option based on the specified business logic.
-
-    Helper Functions:
-    find_best_option(sorted_options): Finds the best shipping option based on delivery date and price.
-    
-    remove_unviable_ground_saver(sorted_options): Filters out UPS Ground Saver options that do not 
-                                                meet the specified criteria.
+        dict: The best shipping option for the order.
     """
-
-    # Helper function to determine if Ground Saver is viable
-    def remove_unviable_ground_saver(sorted_options):
-        """
-        Filters out UPS Ground Saver options that do not meet the specified criteria.
-
-        This function iterates through a sorted list of shipping options and removes 
-        any UPS Ground Saver options if there are other non-Ground Saver options that 
-        are less than $0.30 more expensive. It returns the filtered list of options.
-
-        Parameters:
-        sorted_options (list): A list of dictionaries representing the shipping options,
-                            sorted by price in ascending order. Each dictionary must
-                            contain the keys 'serviceCode' and 'price'.
-
-        Returns:
-        list: A filtered list of shipping options with unviable UPS Ground Saver options removed.
-        """
-        winning_index = 0
-        #print(sorted_options)
-        # If Ground Saver isn't saving at least $0.30 than don't use it
-        for index, option in enumerate(sorted_options):
-            if option['serviceCode'] == "UPS Ground Saver":
-                # Continue checking the next elements as long as the conditions are met
-                if sorted_options[index + 1]['price'] - cheapest_option['price'] < 0.30:
-                    index += 1
-                    winning_index = index  # Set the next index after the current one
-
-        if winning_index:  # Check if a winning index was found
-            index = winning_index
-            sorted_options = sorted_options[index:]
-
-        return sorted_options
-    
-
-    cheapest_option = sorted_options[0]
-    # better_options = [option for option in sorted_options if 0 < option['price'] - cheapest_option['price'] < 0.35]
-    # #print(f"better_options = {better_options}")
-    
-    # if better_options and cheapest_option['serviceCode'] == "UPS Ground Saver":
-    #     filtered_options = remove_unviable_ground_saver(better_options)
-    #     best_option = min(filtered_options, key=lambda x: x['deliveryDate'])
-
-    # elif better_options:
-    #     best_option = min(better_options, key=lambda x: x['deliveryDate'])
-    # else:
-    #     best_option = cheapest_option
-
-    return cheapest_option
-
+    if order.is_single_stream:
+        if sorted_options[0]['serviceCode'] == "UPS Ground Saver":
+            return sorted_options[1]
+        else:
+            return sorted_options[0]
+    else:
+        return sorted_options[0]
 
 
 
@@ -425,7 +376,7 @@ def get_ups_best_rate(order: object):
 
     sorted_options = sorted(valid_rates, key=lambda x: x['price']) if valid_rates else None
     # Apply desired business logic
-    best_option = filter_best_option(sorted_options)
+    best_option = filter_for_single_stream(order, sorted_options)
 
     if best_option:
         # No longer needed, remove to keep data clean

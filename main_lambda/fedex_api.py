@@ -415,6 +415,14 @@ def get_fedex_best_rate(order):
     # Find the best shipping option based on buisness logic
     if valid_shipping_options:
         sorted_options = sorted(valid_shipping_options, key=lambda x: x['price'])
+
+        if order.is_single_stream:
+            if sorted_options[0]['service_name'].includes("SmartPost"):
+                best_option = sorted_options[1]
+            else:
+                best_option = sorted_options[0]
+        else:
+            best_option = sorted_options[0]
         
         # # Desired business logic. Willing to ship up to $0.35 more expensive if package arrives earlier than the cheapest shipping rate
         # better_options = [option for option in sorted_options if option['price'] - sorted_options[0]['price'] < 0.35 and option['delivery_date'] < sorted_options[0]['delivery_date']]
