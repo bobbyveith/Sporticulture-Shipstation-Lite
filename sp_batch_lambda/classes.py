@@ -96,7 +96,7 @@ class Order:
     externally_fulfilled_by_id:         Optional[str]
     externally_fulfilled_by_name:       Optional[str]
     label_messages:                     Optional[str]
-    store_name:                         Dict[str, str] # {'ss_account': 'name', 'store_name': 'name'}
+    store_name:                         str
     webhook_batch_id:                   str
     shipstation_account:                str
     warehouse_name:                     Dict[str, str]

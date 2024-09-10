@@ -46,6 +46,7 @@ def get_secret(secret_name):
 
     
 
+
 def connect_to_api():
     """
         Connect to the ShipStation API using the API keys retrieved from Secrets Manager.
@@ -64,6 +65,8 @@ def connect_to_api():
     return ss_client
 
 
+
+# Not Used
 def get_batch_id(resource_url):
     """
     Extract the importBatch number from the given ShipStation URL.
@@ -79,6 +82,8 @@ def get_batch_id(resource_url):
 
     # Extract and return everything after the "="
     return resource_url[import_batch_start:]
+
+
 
 
 def fetch_order_count(ss_client, max_retries=10, delay=5):
@@ -106,7 +111,6 @@ def fetch_order_count(ss_client, max_retries=10, delay=5):
             print(f"[X] Attempt {attempt+1} failed with error: {e}")
             time.sleep(delay)  # Wait before retrying
     return None
-
 
 
 
@@ -310,17 +314,17 @@ def get_store_name(store_id):
         str or None: The name of the store if found, otherwise `None`.
     """
     store_id_map = {
-        315885: {'ss_account': 'sporticulture', 'store_name': 'Amazon'},
-        341077: {'ss_account': 'sporticulture', 'store_name': 'HSN'},
-        332340: {'ss_account': 'sporticulture', 'store_name': 'JoAnn Fabric & Crafts'},
-        264327: {'ss_account': 'sporticulture', 'store_name': 'Manual Orders'},
-        333906: {'ss_account': 'sporticulture', 'store_name': 'Replacement'},
-        336544: {'ss_account': 'sporticulture', 'store_name': 'Sharper Image'},
-        307866: {'ss_account': 'sporticulture', 'store_name': 'Sporticulture'},
-        320975: {'ss_account': 'sporticulture', 'store_name': 'Sporticulture Wholesale'},
-        319722: {'ss_account': 'sporticulture', 'store_name': 'Stadium Allstars'},
-        337523: {'ss_account': 'sporticulture', 'store_name': 'TC EDI'},
-        334045: {'ss_account': 'sporticulture', 'store_name': 'Walmart Wholesale'}
+        315885: 'Amazon',
+        341077: 'HSN',
+        332340: 'JoAnn Fabric & Crafts',
+        264327: 'Manual Orders',
+        333906: 'Replacement',
+        336544: 'Sharper Image',
+        307866: 'Sporticulture',
+        320975: 'Sporticulture Wholesale',
+        319722: 'Stadium Allstars',
+        337523: 'TC EDI',
+        334045: 'Walmart Wholesale'
     }
     
     store_name = store_id_map.get(store_id, None)
