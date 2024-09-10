@@ -37,11 +37,14 @@ def initial_setup(order_data):
     ups_session = ups_api.create_ups_session()
 
 
-    # Load order and supliment with needed data
-    #order_data = functions.load_order()
+    
     order = init_order(order_data, ss_client, fedex_session, ups_session)
     functions.check_if_multi_order(order)
-    functions.set_product_dimensions(order)
+    successful = functions.set_product_dimensions(order)
+    if not successful:
+        tag = functions.tag_order(order, "No-Dims")
+        print(f"[X] No dimensions available for order {order.order_number}")
+        raise ValueError(f"No dimensions available for order {order.order_number}")
     functions.set_ship_date(order)
 
     return order
@@ -157,8 +160,12 @@ def main(order_data):
         if not initialize_order(order):
             return False
         
-        if order.store_name['store_name'] == "Amazon" or order.store_name['store_name'] == "Sporticulture":
-            functions.update_warehouse_location(order)
+        if order.store_name == "Amazon" or order.store_name == "Sporticulture":
+            successful = functions.update_warehouse_location(order)
+            if not successful:
+                tag = functions.tag_order(order, "No-Warehouse")
+                return False
+            
             if not get_shipping_rates(order):
                 return False
 
@@ -185,16 +192,14 @@ def main(order_data):
     # raise Exception("test")
 
 
-    #valid_trading_partners = ["Amazon", "Rally House", "JoAnn", "CBS", "Sharper Image", "Stadium Allstars", "Sporticulture"]
-    valid_trading_partners = ["Amazon"] # Testing
-
+    valid_trading_partners = ["Amazon", "Rally House", "JoAnn", "CBS", "Sharper Image", "Stadium Allstars", "Sporticulture"]
     if order.trading_partner in valid_trading_partners:
         if order.Shipment.is_expedited:
             functions.tag_order(order, "Expedited")
-        else:
-            successful = full_program(order)
-            return successful
-        
+        successful = full_program(order)
+        if not successful:
+            return False
+        return True
     else:
         print(f"Order {order.order_key} not in valid trading partners")
         

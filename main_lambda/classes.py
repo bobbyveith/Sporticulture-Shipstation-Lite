@@ -131,7 +131,7 @@ class Order:
     externally_fulfilled_by_id:         Optional[str]
     externally_fulfilled_by_name:       Optional[str]
     label_messages:                     Optional[str]
-    store_name:                         Dict[str, str] # {'ss_account': 'name', 'store_name': 'name'}
+    store_name:                         str
     webhook_batch_id:                   str
     shipstation_account:                str
     warehouse_name:                     Dict[str, str]
@@ -168,7 +168,7 @@ class Order:
 
     def set_trading_partner(self):
 
-        if self.store_name['store_name'] == "TC EDI":
+        if self.store_name == "TC EDI":
             if self.order_number.startswith("DS"):
                 self.trading_partner = "Fanatics"
                 self.list_of_carriers = ["External Account"]
@@ -179,15 +179,15 @@ class Order:
                 self.trading_partner = "Rally House"
                 self.list_of_carriers = ["Automated on Shipstation UI"]
         
-        elif self.store_name['store_name'] == "Amazon":
+        elif self.store_name == "Amazon":
             self.trading_partner = "Amazon"
             self.list_of_carriers = ["ups", "fedex", "stamps_com", "ups_walleted"]
 
-        elif self.store_name['store_name'] == "JoAnn Fabric & Crafts":
+        elif self.store_name == "JoAnn Fabric & Crafts":
             self.trading_partner = "JoAnn"
             self.list_of_carriers = ["Automated on Shipstation UI"]
 
-        elif self.store_name['store_name'] == "Sporticulture":
+        elif self.store_name == "Sporticulture":
             cbs_keywords = ["CBSD", "RSAD", "AMSD"]
             for word in cbs_keywords:
                 if word in self.order_number:
@@ -199,18 +199,18 @@ class Order:
                     self.list_of_carriers = ["ups", "ups_walleted", "fedex", "stamps_com"]
 
         
-        elif self.store_name['store_name'] == "Sharper Image":
+        elif self.store_name == "Sharper Image":
             self.trading_partner = "Sharper Image"
             self.list_of_carriers = ["Automated on Shipstation UI"]
         
-        elif self.store_name['store_name'] == "Stadium Allstars":
+        elif self.store_name == "Stadium Allstars":
             self.trading_partner = "Stadium Allstars"
             self.list_of_carriers = ["Automated on Shipstation UI"]
         
-        elif self.store_name['store_name'] == "Sporticulture Wholesale":
+        elif self.store_name == "Sporticulture Wholesale":
             self.trading_partner = "Sporticulture Wholesale"
         
-        elif self.store_name['store_name'] == "Walmart Wholesale":
+        elif self.store_name == "Walmart Wholesale":
             self.trading_partner = "Walmart"
             self.list_of_carriers = []
 

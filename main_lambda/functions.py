@@ -1,14 +1,16 @@
 import json, os, time, pyfiglet, requests
-from dotenv import load_dotenv
 from shipstation_local.api import *
 from classes import Order
 from pytz import timezone
 import re
 import boto3
 from botocore.exceptions import ClientError
+import json
+import datetime
 
-__author__ = ["Rafael Malcervelli", "Bobby Veith"]
-__company__ = "Lentics, Inc."
+
+__author__ = "Bobby Veith"
+__company__ = "Sporticulture"
 
 
 def print_banner():
@@ -178,13 +180,15 @@ def get_tag_id(tag_reason: str):
         "Ready"                 : 55809,
         "No SS Carrier Rates"   : 55812,
         "Expedited"             : 55476,
-        "Amazon"                : 55813
+        "Amazon"                : 55813,
+        "No-Warehouse"          : 55827
     }
 
 
     tag_id = account_tag_id_mapping.get(tag_reason, False)
 
     return tag_id
+
 
 
 
@@ -333,14 +337,14 @@ def set_ship_date(order):
         order.Shipment.ship_date = ship_date.strftime('%Y-%m-%d')
 
     irrelevant_stores = ["TC EDI", "Sporticulture",]
-    if order.store_name['store_name'] in irrelevant_stores:
+    if order.store_name in irrelevant_stores:
         pass
     
     stores_set_to_tomorrow = ["JoAnn Fabric & Crafts", "Sharper Image", "Stadium Allstars"]
-    if order.store_name['store_name'] in stores_set_to_tomorrow:
+    if order.store_name in stores_set_to_tomorrow:
         set_ship_date_to_tomorrow(order)
 
-    if order.store_name['store_name'] == "Amazon":
+    if order.store_name == "Amazon":
         ship_date_for_amazon(order)
 
     # No return statement needed as the function modifies the order object in place
@@ -498,17 +502,17 @@ def set_product_dimensions(order):
     def get_prefix(sku):
         # Get the key for product_size_mapping based on sku prefix
         prefix_mapping = {
-            "1212F": "12x12",
-            "1218F": "12x18",
+            "1216FL3D": "12x18",
+            "1216F3D": "12x18",
+            "1216U3D": "12x18",
             "17523F": "17.5x23",
             "2335F": "23x35",
-            "28F": "2x8",
-            "624F": "6x24",
+            "1212F": "12x12",
+            "1218F": "12x18",
             "832F": "8x32",
             "912F": "9x12",
-            "1216F3D": "12x18",
-            "1216FL3D": "12x18",
-            "1216U3D": "12x18"
+            "624F": "6x24",
+            "28F": "2x8"
         }
         for key, value in prefix_mapping.items():
             if sku.startswith(key):
@@ -535,32 +539,41 @@ def set_product_dimensions(order):
         "9x27": {"length": 45, "width": 20, "height": 2, "weight": 128},
         "2x8": {"length": 9, "width": 3, "height": 3, "weight": 16},
         "12x36": {"length": 45, "width": 20, "height": 2, "weight": 128},
+        "CERSNCJ": {"length": 11, "width": 10.5, "height": 14, "weight": 71}, # 4 lbs 7 oz = 64 + 7 = 71 oz
+        "INFLSCF": {"length": 7, "width": 7, "height": 7, "weight": 38}, # 2 lbs 6 oz = 32 + 6 = 38 oz
+        "STRART": {"length": 12, "width": 12, "height": 3, "weight": 39}, # 2 lbs 7 oz = 32 + 7 = 39 oz
+        "INFLCP": {"length": 10, "width": 6, "height": 3, "weight": 10},
+        "INFLJH": {"length": 10, "width": 8, "height": 6, "weight": 46}, # 2 lbs 14 oz = 32 + 14 = 46 oz
+        "INFLSB": {"length": 10, "width": 8, "height": 6, "weight": 54}, # 3 lbs 6 oz = 48 + 6 = 54 oz
+        "INDLSD": {"length": 10, "width": 8, "height": 6, "weight": 51}, # 3 lbs 3 oz = 48 + 3 = 51 oz
+        "CERPM": {"length": 12, "width": 12.5, "height": 13.5, "weight": 82}, # 5 lbs 2 oz = 80 + 2 = 82 oz
         "BBRIT": {"length": 7, "width": 7, "height": 5, "weight": 13},
-        "BPOT": {"length": 8, "width": 8, "height": 8, "weight": 18},  # 1 lb 2 oz = 16 + 2 = 18 oz
         "CARDL": {"length": 6, "width": 4, "height": 4, "weight": 6},
         "CRDDT": {"length": 4, "width": 4, "height": 16, "weight": 12},
-        "INFLCP": {"length": 10, "width": 6, "height": 3, "weight": 10},
-        "INFLSCF": {"length": 7, "width": 7, "height": 7, "weight": 38},  # 2 lbs 6 oz = 32 + 6 = 38 oz
-        "INFLJH": {"length": 10, "width": 8, "height": 6, "weight": 46},  # 2 lbs 14 oz = 32 + 14 = 46 oz
-        "INFLSB": {"length": 10, "width": 8, "height": 6, "weight": 54},  # 3 lbs 6 oz = 48 + 6 = 54 oz
-        "INDLSD": {"length": 10, "width": 8, "height": 6, "weight": 51},  # 3 lbs 3 oz = 48 + 3 = 51 oz
-        "GDPWT": {"length": 5, "width": 5, "height": 3, "weight": 25},  # 1 lb 9 oz = 16 + 9 = 25 oz
-        "MGLMP": {"length": 12, "width": 9, "height": 5, "weight": 67},  # 4 lbs 3 oz = 64 + 3 = 67 oz
-        "SCARL": {"length": 36, "width": 12, "height": 4, "weight": 44},  # 2 lbs 12 oz = 32 + 12 = 44 oz
-        "SOLTR": {"length": 14, "width": 6, "height": 6, "weight": 25},  # 1 lb 9 oz = 16 + 9 = 25 oz
+        "GDPWT": {"length": 5, "width": 5, "height": 3, "weight": 25}, # 1 lb 9 oz = 16 + 9 = 25 oz
+        "MGLMP": {"length": 12, "width": 9, "height": 5, "weight": 67}, # 4 lbs 3 oz = 64 + 3 = 67 oz
+        "SCARL": {"length": 36, "width": 12, "height": 4, "weight": 44}, # 2 lbs 12 oz = 32 + 12 = 44 oz
+        "SOLTR": {"length": 14, "width": 6, "height": 6, "weight": 25}, # 1 lb 9 oz = 16 + 9 = 25 oz
         "SPOTL": {"length": 6, "width": 4, "height": 4, "weight": 6},
-        "STRART": {"length": 12, "width": 12, "height": 3, "weight": 39},  # 2 lbs 7 oz = 32 + 7 = 39 oz
-        "CERPM": {"length": 12, "width": 12.5, "height": 13.5, "weight": 82},  # 5 lbs 2 oz = 80 + 2 = 82 oz
-        "CERSNCJ": {"length": 11, "width": 10.5, "height": 14, "weight": 71},  # 4 lbs 7 oz = 64 + 7 = 71 oz
         "CRCCS": {"length": 9, "width": 7, "height": 1, "weight": 3.2},
-        "SAND": {"length": 8.5, "width": 12.5, "height": 1, "weight": 17},  # 1 lb 1 oz = 16 + 1 = 17 oz
+        "SAND": {"length": 8.5, "width": 12.5, "height": 1, "weight": 17}, # 1 lb 1 oz = 16 + 1 = 17 oz
         "SCRT": {"length": 15, "width": 13, "height": 1, "weight": 7},
+        "BPOT": {"length": 8, "width": 8, "height": 8, "weight": 18}, # 1 lb 2 oz = 16 + 2 = 18 oz
     }
-
 
     if not order.Shipment.dimensions:
         sku = order.items[0].sku
         prefix = get_prefix(sku)
+        
+        if prefix is None:
+            for key in product_size_mapping.keys():
+                if sku.startswith(key):
+                    prefix = key
+                    break
+        
+        if prefix is None:
+            return False
+        
         size_dict = product_size_mapping[prefix]
 
         length = size_dict['length']
@@ -571,6 +584,7 @@ def set_product_dimensions(order):
         # Set the dimensions and weight for the order_object
         order.Shipment.dimensions = {"units": "inches", "length": length, "width": width, "height": height}
         order.Shipment.weight = {"value": weight, "units": "ounces", 'weight_units': 1}
+        return True
     
 
 def get_warehouse_id(order):
@@ -631,14 +645,11 @@ def get_warehouse_id(order):
         }
 
         sku = order.items[0].sku
-        print(sku)
         for key, warehouse_id in warehouse_id_mapping.items():
             if sku.startswith(key):
-                print(key)
-                print(warehouse_id)
                 return warehouse_id
         
-        raise ValueError(f"No warehouse ID found for SKU: {sku}")
+        return False
 
 
 
@@ -647,6 +658,8 @@ def update_warehouse_location(order):
         
         
         warehouse_id = get_warehouse_id(order)
+        if warehouse_id is False:
+            return False
 
         print(f"Warehouse ID: {warehouse_id}")
 
@@ -682,7 +695,7 @@ def update_warehouse_location(order):
             order.Shipment.warehouse.name = "Stallion Wholesale"
 
         else:
-            raise ValueError(f"Invalid warehouse ID: {warehouse_id}")
+            return False
     
 
 
@@ -738,7 +751,7 @@ def update_advanced_options(order):
         return shipping_provider_id
 
 
-    if order.store_name['store_name'] == "Amazon" or order.store_name['store_name'] == "Sporticulture":
+    if order.store_name == "Amazon" or order.store_name == "Sporticulture":
         # Update the Shipping Account Billing info based on the winning carrier
         winning_carrier_code = order.winning_rate["carrierCode"]
         shipping_provider_id = get_shipping_provider_id(winning_carrier_code)

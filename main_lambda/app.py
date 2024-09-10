@@ -15,18 +15,18 @@ def lambda_handler(event, context):
         parsed_body = json.loads(record_body)
         
         # Extract the queue URL and receipt handle
-        queue_url = record['eventSourceARN']
+        queue_url = "https://sqs.us-east-2.amazonaws.com/982081062525/SporticultureOrderQueue"
         receipt_handle = record['receiptHandle']
         
         # Pass the parsed body, queue URL, and receipt handle to the main function
-        #result = main(parsed_body)
+        result = main(parsed_body)
 
-        # If result is true, delete the message from the queue
-        # if result:
-        #     sqs.delete_message(
-        #         QueueUrl=queue_url,
-        #         ReceiptHandle=receipt_handle
-        #     )
+        #If result is true, delete the message from the queue
+        if result:
+            sqs.delete_message(
+                QueueUrl=queue_url,
+                ReceiptHandle=receipt_handle
+            )
         
         return {
             "statusCode": 200,
