@@ -18,36 +18,39 @@ __company__ = "Sporticulture"
 retry_list = []
 
 # =================== CORE PROGRAM FUNCTIONS =============================
+print("Connecting to the ShipStation API...")
+ss_client = functions.connect_to_api()
+print("[+] Connected to the ShipStation API!\n\n")
+# Other Sessions
+fedex_session = create_fedex_session()
+ups_session = ups_api.create_ups_session()
 
 def initial_setup(order_data):
     '''
     This function is used to set up the program and intiated the data into python object
     '''
     # Set up the progam and get the list of orders and csv for customer logging
-    functions.print_banner()
+    #functions.print_banner()
 
     print("======= Starting Initial Setup =======")
     # Connect to the ShipStation API
-    print("Connecting to the ShipStation API...")
-    ss_client = functions.connect_to_api()
-    print("[+] Connected to the ShipStation API!\n\n")
 
-    # Other Sessions
-    fedex_session = create_fedex_session()
-    ups_session = ups_api.create_ups_session()
 
-    print(f"order_data: {order_data}")
+    #print(f"order_data: {order_data}")
     # Initialize the order object
     order = init_order(order_data, ss_client, fedex_session, ups_session)
 
     # Sets order attributes as needed
     functions.check_if_multi_order(order)
 
-    successful = functions.set_product_dimensions(order)
-    if not successful:
-        tag = functions.tag_order(order, "No-Dims")
-        print(f"[X] No dimensions available for order {order.order_number}")
-        raise ValueError(f"No dimensions available for order {order.order_number}")
+    if not order.is_multi_order or not order.is_double_order or not order.is_complex_order:
+        successful = functions.set_product_dimensions(order)
+        if not successful:
+            #tag = functions.tag_order(order, "No-Dims")
+            print(f"[X] No dimensions available for order {order.order_number}")
+            #raise ValueError(f"No dimensions available for order {order.order_number}")
+            functions.print_yellow(f"No dimensions available for order {order.order_number}")
+            raise ValueError(f"No dimensions available for order {order.order_number}")
     
     functions.set_ship_date(order)
 
@@ -57,7 +60,7 @@ def initial_setup(order_data):
 
 
 def initialize_order(order):
-    print(f"[+] Starting Initialization for order: {order.order_key} | {order.store_name['store_name']}")
+    print(f"[+] Starting Initialization for order: {order.order_key} | {order.store_name}")
     print("\n")
     # Multi Orders have unique conditions for setting the Dimensions
     if order.is_multi_order or order.is_double_order or order.is_complex_order:
@@ -145,6 +148,8 @@ def update_order(order):
     if success:
         functions.tag_order(order, "Ready")
         functions.print_green("[+] Successfully Updated Carrier on Shipstation")
+        if order.store_name == "Amazon":
+            functions.tag_order(order, "Amazon")
     else:
         functions.print_red(f"[X] Order shipping update not successful {order.order_key}")
         failure = (order, "Shipping not set")
@@ -154,8 +159,9 @@ def update_order(order):
     return True
 
 
-def main(order_data):
+def main(data):
 
+    order_data = json.loads(json.dumps(data, default=lambda o: o.__dict__))
 
     global retry_list
     retry_list = []
@@ -182,7 +188,7 @@ def main(order_data):
         return True
     
     def half_program(order):
-        if order.store_name['store_name'] == "Amazon" or order.store_name['store_name'] == "Sporticulture":
+        if order.store_name == "Amazon" or order.store_name == "Sporticulture":
             if not set_winning_rate(order):
                 return False
         
@@ -197,10 +203,12 @@ def main(order_data):
     # raise Exception("test")
 
 
-    valid_trading_partners = ["Amazon", "Rally House", "JoAnn", "CBS", "Sharper Image", "Stadium Allstars", "Sporticulture"]
+    #valid_trading_partners = ["Amazon", "Rally House", "CBS", "Sharper Image", "Stadium Allstars", "Sporticulture", "Fanatics"] #"JoAnn",
+    valid_trading_partners = ["Fanatics", "Amazon"] #"JoAnn",
     if order.trading_partner in valid_trading_partners:
         if order.Shipment.is_expedited:
-            functions.tag_order(order, "Expedited")
+            # Variable not needed, just returns bool so..
+            tag = functions.tag_order(order, "Expedited")
         successful = full_program(order)
         if not successful:
             return False

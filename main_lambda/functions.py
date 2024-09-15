@@ -151,6 +151,78 @@ def connect_to_api():
     return ss_client
 
 
+def fetch_order_count(ss_client, max_retries=10, delay=5):
+    """
+    Fetches the total number of orders from ShipStation.
+
+    Args:
+        ss_client (ShipStation): The ShipStation connection object.
+        max_retries (int): Maximum number of retries.
+        delay (int): Delay between retries in seconds.
+
+    Returns:
+        int: The total number of pages (total orders divided by 250).
+    """
+    for attempt in range(max_retries):
+        try:
+            params = {'order_status': 'awaiting_shipment', 'page': 1, 'page_size': 1}
+            response = ss_client.fetch_orders(parameters=params)
+            response.raise_for_status()  # Raises an HTTPError for bad responses (4xx/5xx)
+            
+            # Extract the total number of orders from the JSON response
+            total_orders = response.json().get('total', 0)
+            return total_orders
+        except Exception as e:
+            print(f"[X] Attempt {attempt+1} failed with error: {e}")
+            time.sleep(delay)  # Wait before retrying
+    return None
+
+
+
+
+def fetch_orders_with_retry(ss_client, total_orders, max_retries=10, delay=5):
+    """
+    Attempts to fetch all orders with a specified number of retries for each page.
+
+    Args:
+        ss_client (ShipStation): The ShipStation connection object.
+        total_orders (int): The total number of orders to fetch.
+        max_retries (int): Maximum number of retries for each page.
+        delay (int): Delay between retries in seconds.
+
+    Returns:
+        list: A list of all orders (parsed from the response JSON).
+    """
+    num_of_pages = (total_orders // 250) + 1
+    all_orders = []
+
+    for page in range(1, num_of_pages + 1):
+        for attempt in range(max_retries):
+            try:
+                params = {
+                    'order_status': 'awaiting_shipment', 
+                    'page': page,
+                    'page_size': 250
+                }
+                
+                response = ss_client.fetch_orders(parameters=params)
+                response.raise_for_status()  # Raises an HTTPError for bad responses (4xx/5xx)
+                
+                # Extract the list of orders from the JSON response
+                orders = response.json().get("orders", [])
+                all_orders.extend(orders)
+                break  # Exit the retry loop if the request is successful
+            except Exception as e:
+                print(f"[X] Attempt {attempt+1} for page {page} failed with error: {e}")
+                time.sleep(delay)  # Wait before retrying
+        else:
+            print(f"[X] Failed to fetch page {page} after {max_retries} attempts.")
+            return None  # Return None if any page fails after max retries
+
+    return all_orders
+
+
+
 
 
 def get_tag_id(tag_reason: str):
@@ -179,6 +251,7 @@ def get_tag_id(tag_reason: str):
         "No SS Carrier Rates"   : 55812,
         "Expedited"             : 55476,
         "Amazon"                : 55813,
+        "No-Warehouse"          : 55827,
     }
 
 
@@ -567,10 +640,9 @@ def set_product_dimensions(order):
                 if sku.startswith(key):
                     prefix = key
                     break
-        
-        if prefix is None:
             return False
         
+
         size_dict = product_size_mapping[prefix]
 
         length = size_dict['length']
@@ -582,71 +654,75 @@ def set_product_dimensions(order):
         order.Shipment.dimensions = {"units": "inches", "length": length, "width": width, "height": height}
         order.Shipment.weight = {"value": weight, "units": "ounces", 'weight_units': 1}
         return True
+    return True
     
 
 def get_warehouse_id(order):
-        # 590152 = Indiana
-        # 791225 = MD
-        # 729388 = Walnut Springs
-        # Order them longest to shortest to ensure we get the correct warehouse ID
-        warehouse_id_mapping = {
-            "INFL-CCSNTA": 791225,
-            "1216FL3D": None,
-            "CARDL-LS": 590152,
-            "1216F3D": None,
-            "1216U3D": None,
-            "CRDP-CC": 791225,
-            "INFLCSF": 590152,
-            "INFLSMP": 791225,
-            "17523F": 791225,
-            "CCERSM": 590152,
-            "INFLCP": 590152,
-            "INFLJH": 590152,
-            "INFLSB": 590152,
-            "INFLSD": 590152,
-            "1212F": 791225,
-            "1218F": 791225,
-            "2335F": 791225,
-            "BBRIT": 791225,
-            "BCHPD": 590152,
-            "CARDL": 590152,
-            "CERPM": 791225,
-            "CERSM": 590152,
-            "CERSN": 791225,
-            "CRCCS": 791225,
-            "CRDDT": 590152,
-            "CRDPP": 791225,
-            "GDPWT": 791225,
-            "INFLH": 791225,
-            "INFLJ": 791225,
-            "INFTY": 791225,
-            "MAFBL": 590152,
-            "MGLMP": 590152,
-            "PCRSM": 590152,
-            "SCARL": 590152,
-            "SOLTR": 590152,
-            "SPOTL": 590152,
-            "STRBL": 590152,
-            "ZNCN9": 791225,
-            "624F": 791225,
-            "832F": 791225,
-            "912F": 791225,
-            "BPOT": 590152,
-            "SAND": 791225,
-            "SCRT": 791225,
-            "PLNF": 729388,
-            "PLNP": 729388,
-            "PLSA": 729388,
-            "28F": 791225,
-            "MTS": 791225
-        }
+    # 590152 = Indiana
+    # 791225 = MD
+    # 729388 = Walnut Springs
+    # Order them longest to shortest to ensure we get the correct warehouse ID
+    warehouse_id_mapping = {
+        "INFL-CCSNTA": 791225,
+        "1216FL3D": None,
+        "CARDL-LS": 590152,
+        "1216F3D": None,
+        "1216U3D": None,
+        "CRDP-CC": 791225,
+        "INFLCSF": 590152,
+        "INFLSMP": 791225,
+        "17523F": 791225,
+        "CCERSM": 590152,
+        "INFLCP": 590152,
+        "INFLJH": 590152,
+        "INFLSB": 590152,
+        "INFLSD": 590152,
+        "1212F": 791225,
+        "1218F": 791225,
+        "2335F": 791225,
+        "BBRIT": 791225,
+        "BCHPD": 590152,
+        "CARDL": 590152,
+        "CERPM": 791225,
+        "CERSM": 590152,
+        "CERSN": 791225,
+        "CRCCS": 791225,
+        "CRDDT": 590152,
+        "CRDPP": 791225,
+        "GDPWT": 791225,
+        "INFLH": 791225,
+        "INFLJ": 791225,
+        "INFTY": 791225,
+        "MAFBL": 590152,
+        "MGLMP": 590152,
+        "PCRSM": 590152,
+        "SCARL": 590152,
+        "SOLTR": 590152,
+        "SPOTL": 590152,
+        "STRBL": 590152,
+        "ZNCN9": 791225,
+        "624F": 791225,
+        "832F": 791225,
+        "912F": 791225,
+        "BPOT": 590152,
+        "SAND": 791225,
+        "SCRT": 791225,
+        "PLNF": 729388,
+        "PLNP": 729388,
+        "PLSA": 729388,
+        "28F": 791225,
+        "MTS": 791225
+    }
 
-        sku = order.items[0].sku
-        for key, warehouse_id in warehouse_id_mapping.items():
-            if sku.startswith(key):
-                return warehouse_id
-        
-        return False
+    sku = order.items[0].sku
+
+    for key, warehouse_id in warehouse_id_mapping.items():
+        if sku.startswith(key):
+            print(f"Match found: {key} -> {warehouse_id}")  # Debug print
+            return warehouse_id
+
+    print("No match found for SKU")  # Debug print
+    return False
 
 
 
@@ -669,6 +745,7 @@ def update_warehouse_location(order):
             order.Shipment.warehouse.phone = "4432667788"
             order.Shipment.warehouse.residential = False
             order.Shipment.warehouse.name = "Warehouse Location 1"
+            return True
 
         elif warehouse_id == 729388:
             order.Shipment.warehouse.postal_code = "21738"
@@ -679,7 +756,7 @@ def update_warehouse_location(order):
             order.Shipment.warehouse.phone = "4432667788"
             order.Shipment.warehouse.residential = False
             order.Shipment.warehouse.name = "Walnut Springs Nursery"
-
+            return True
         elif warehouse_id == 590152 or warehouse_id is None:
             # Initialize warehouse attributes
             order.Shipment.warehouse.postal_code = "46203"
@@ -690,7 +767,7 @@ def update_warehouse_location(order):
             order.Shipment.warehouse.phone = "3174064033"
             order.Shipment.warehouse.residential = False
             order.Shipment.warehouse.name = "Stallion Wholesale"
-
+            return True
         else:
             return False
     
@@ -776,6 +853,50 @@ def convert_keys_to_camel_case(data):
 
 
 def set_payload_for_update_order(order_object):
+
+    def get_service_code(order_object):
+        try:
+            requested_shipping_service = order_object.winning_rate["serviceCode"]
+        except KeyError:
+            requested_shipping_service = order_object.Shipment.service_code
+        
+        return requested_shipping_service
+    
+    def get_carrier_code(order_object):
+        try:
+            carrier_code = order_object.winning_rate["carrierCode"]
+        except KeyError:
+            carrier_code = order_object.Shipment.carrier_code
+        
+        return carrier_code
+    
+    def get_special_service_code(order_object):
+
+        mapping = {
+            'UPS Next Day Air®': 'ups_next_day_air', 
+            'UPS 2nd Day Air®': 'ups_2nd_day_air', 
+            'UPS® Ground': 'ups_ground', 
+            'UPS 3 Day Select®': 'ups_3_day_select', 
+            'UPS Next Day Air Saver®': 'ups_next_day_air_saver', 
+            'UPS Next Day Air® Early': 'ups_next_day_air_early_am', 
+            'FedEx First Overnight®': 'fedex_first_overnight', 
+            'FedEx Priority Overnight®': 'fedex_priority_overnight', 
+            'FedEx Standard Overnight®': 'fedex_standard_overnight', 
+            'FedEx 2Day® A.M.': 'fedex_2day_am', 'FedEx 2Day®': 'fedex_2day', 
+            'FedEx Express Saver®': 'fedex_express_saver', 
+            'FedEx Home Delivery®': 'fedex_home_delivery', 
+            'FedEx SmartPost parcel select': 'fedex_smartpost_parcel_select', 
+            'UPS Ground Saver': 'ups_ground_saver', 
+            'USPS Priority Mail - Package': 'usps_priority_mail', 
+            'USPS Priority Mail Express - Package': 'usps_priority_mail_express', 
+            'USPS Ground Advantage - Package': 'usps_ground_advantage'
+        }
+
+        serviceCode = get_service_code(order_object)
+        special_code = mapping.get(serviceCode, None)
+
+        return special_code
+
     # Update the advanced options for the order if neccessary
     update_advanced_options(order_object)
 
@@ -800,9 +921,9 @@ def set_payload_for_update_order(order_object):
         "gift": order_object.Shipment.is_gift,
         "giftMessage": order_object.Shipment.gift_message,
         "paymentMethod": order_object.payment_method,
-        "requestedShippingService": order_object.winning_rate["serviceCode"],
-        "carrierCode": order_object.winning_rate["carrierCode"],
-        "serviceCode": order_object.mapping_services[order_object.winning_rate["serviceCode"]],
+        "requestedShippingService": get_service_code(order_object), # API Documention is a little wrong. So this is actually the serviceCode of the winning rate
+        "carrierCode": get_carrier_code(order_object),              # Carrier code of the winning rate, as normal
+        "serviceCode": get_special_service_code(order_object),      # Special service code matching the serviceCode of the winning rate
         "packageCode": order_object.Shipment.package_code,
         "confirmation": order_object.Shipment.confirmation,
         "shipDate": order_object.Shipment.ship_date,

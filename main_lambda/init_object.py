@@ -1,4 +1,4 @@
-from classes import Address, Item, Shipment, Customer, Order
+from main_lambda.classes import Address, Item, Shipment, Customer, Order
 from typing import Dict
 
 

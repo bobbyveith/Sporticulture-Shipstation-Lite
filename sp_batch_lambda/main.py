@@ -1,7 +1,7 @@
 #from functions import connect_to_api, get_batch_id, fetch_orders_with_retry, get_store_name
-import functions
-from classes import Order, Customer, Address, Item, Shipment # Comes from shipstation_layer (lambda_layer)
-from utils import convert_keys_to_snake_case
+import sp_batch_lambda.functions as functions
+from .classes import Order, Customer, Address, Item, Shipment # Comes from shipstation_layer (lambda_layer)
+from .utils import convert_keys_to_snake_case
 import json
 
 import boto3
@@ -27,6 +27,7 @@ def process_batch():
     print(f"Orders: {len(orders)}")
 
     if orders:
+        order_objects = []
         for order_data_raw in orders:
             # Tag id for "Ready to Ship"
             if order_data_raw.get('tagIds') is not None and 55809 in order_data_raw['tagIds']:
@@ -73,18 +74,19 @@ def process_batch():
                 order_data_raw= order_data,
                 **order
             )
+            order_objects.append(order_object)
+            continue
+            #successful = functions.send_order_to_queue(order_object, sqs_client)
+            # if successful:
+            #     print(f"Order {order_object.order_key} sent to queue successfully")
+            #     continue
+            # else:
+            #     print(f"Order {order_object.order_key} failed to send to queue")
+            #     continue
 
-            successful = functions.send_order_to_queue(order_object, sqs_client)
-            if successful:
-                print(f"Order {order_object.order_key} sent to queue successfully")
-                continue
-            else:
-                print(f"Order {order_object.order_key} failed to send to queue")
-                continue
 
-
-
-        return {"message": "[+] All orders sent to queue Successfully"}
+        return order_objects
+        #return {"message": "[+] All orders sent to queue Successfully"}
     return {
             'statusCode': 504,
             'body': json.dumps('Failed to fetch data from ShipStation API after maximum retries.')

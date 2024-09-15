@@ -17,9 +17,10 @@ lint = true
 capabilities = "CAPABILITY_IAM"
 confirm_changeset = true
 resolve_s3 = true
-s3_prefix = "Sporticulture-SS-Automation"
+s3_prefix = "Sporticulture-SS-Automation-lite"
 region = "us-east-2"
 image_repositories = []
+stack_name = "Sporticulture-SS-Automation-lite"
 
 [default.package.parameters]
 resolve_s3 = true

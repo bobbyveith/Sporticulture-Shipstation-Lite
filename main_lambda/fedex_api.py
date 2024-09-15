@@ -415,7 +415,7 @@ def get_fedex_best_rate(order):
         sorted_options = sorted(valid_shipping_options, key=lambda x: x['price'])
 
         if order.is_single_stream:
-            if sorted_options[0]['service_name'].includes("SmartPost"):
+            if "SmartPost" in sorted_options[0]['service_name']:
                 best_option = sorted_options[1]
             else:
                 best_option = sorted_options[0]

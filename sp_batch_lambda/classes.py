@@ -103,6 +103,9 @@ class Order:
     deliver_by_date:                    str = field(init=False)
     is_multi_order:                     bool = False
     is_double_order:                    bool = False
+    ss_client:                          Optional[object] = None
+    fedex_session:                      Optional[object] = None
+    ups_session:                        Optional[object] = None
     rates:                              Dict = field(default_factory=dict)
     winning_rate:                       Dict = field(default_factory=dict)
     mapping_services:                   Dict = field(default_factory=dict)
@@ -115,49 +118,50 @@ class Order:
         self.update_shipment_based_on_warehouse()
 
     def update_shipment_based_on_warehouse(self):
-        # Initialize warehouse attributes using warehouse name
-        if self.warehouse_name['warehouse'] == "SHIPPING DEPARTMENT":
-            self.Shipment.warehouse.postal_code = "46203"
-            self.Shipment.warehouse.city = "INDIANAPOLIS"
-            self.Shipment.warehouse.state = "IN"
-            self.Shipment.warehouse.country = "US"
-            self.Shipment.warehouse.street1 = "1435 E NAOMI ST"
-            self.Shipment.warehouse.phone = "3174064033"
-            self.Shipment.warehouse.residential = False
-            self.Shipment.warehouse.name = "SHIPPING DEPARTMENT"
-        
-        # Shipping values are same as 'stallion'
-        elif self.warehouse_name['warehouse'] == "Winning Streak":
-            self.Shipment.warehouse.postal_code = "46203"
-            self.Shipment.warehouse.city = "INDIANAPOLIS"
-            self.Shipment.warehouse.state = "IN"
-            self.Shipment.warehouse.country = "US"
-            self.Shipment.warehouse.street1 = "1435 E NAOMI ST"
-            self.Shipment.warehouse.phone = "3174064033"
-            self.Shipment.warehouse.residential = False
-            self.Shipment.warehouse.name = "SHIPPING DEPARTMENT"
+        if self.warehouse_name['warehouse'] is not None:
+            # Initialize warehouse attributes using warehouse name
+            if self.warehouse_name['warehouse'] == "SHIPPING DEPARTMENT":
+                self.Shipment.warehouse.postal_code = "46203"
+                self.Shipment.warehouse.city = "INDIANAPOLIS"
+                self.Shipment.warehouse.state = "IN"
+                self.Shipment.warehouse.country = "US"
+                self.Shipment.warehouse.street1 = "1435 E NAOMI ST"
+                self.Shipment.warehouse.phone = "3174064033"
+                self.Shipment.warehouse.residential = False
+                self.Shipment.warehouse.name = "SHIPPING DEPARTMENT"
+            
+            # Shipping values are same as 'stallion'
+            elif self.warehouse_name['warehouse'] == "Winning Streak":
+                self.Shipment.warehouse.postal_code = "46203"
+                self.Shipment.warehouse.city = "INDIANAPOLIS"
+                self.Shipment.warehouse.state = "IN"
+                self.Shipment.warehouse.country = "US"
+                self.Shipment.warehouse.street1 = "1435 E NAOMI ST"
+                self.Shipment.warehouse.phone = "3174064033"
+                self.Shipment.warehouse.residential = False
+                self.Shipment.warehouse.name = "SHIPPING DEPARTMENT"
 
-        # Shipping values are same as 'stallion'
-        elif self.warehouse_name['warehouse'] == "Stallion Wholesale":
-            self.Shipment.warehouse.postal_code = "46203"
-            self.Shipment.warehouse.city = "INDIANAPOLIS"
-            self.Shipment.warehouse.state = "IN"
-            self.Shipment.warehouse.country = "US"
-            self.Shipment.warehouse.street1 = "1435 E NAOMI ST"
-            self.Shipment.warehouse.phone = "4432667788"
-            self.Shipment.warehouse.residential = False
-            self.Shipment.warehouse.name = "SHIPPING DEPARTMENT"
+            # Shipping values are same as 'stallion'
+            elif self.warehouse_name['warehouse'] == "Stallion Wholesale":
+                self.Shipment.warehouse.postal_code = "46203"
+                self.Shipment.warehouse.city = "INDIANAPOLIS"
+                self.Shipment.warehouse.state = "IN"
+                self.Shipment.warehouse.country = "US"
+                self.Shipment.warehouse.street1 = "1435 E NAOMI ST"
+                self.Shipment.warehouse.phone = "4432667788"
+                self.Shipment.warehouse.residential = False
+                self.Shipment.warehouse.name = "SHIPPING DEPARTMENT"
 
-        
-        elif self.warehouse_name['warehouse'] == "Sporticulture":
-            self.Shipment.warehouse.postal_code = "21738"
-            self.Shipment.warehouse.city = "Glenwood"
-            self.Shipment.warehouse.state = "MD"
-            self.Shipment.warehouse.country = "US"
-            self.Shipment.warehouse.street1 = "14812 Burntwoods Road"
-            self.Shipment.warehouse.phone = "4432667788"
-            self.Shipment.warehouse.residential = False
-            self.Shipment.warehouse.name = "Warehouse Location 1"
+            
+            elif self.warehouse_name['warehouse'] == "Sporticulture":
+                self.Shipment.warehouse.postal_code = "21738"
+                self.Shipment.warehouse.city = "Glenwood"
+                self.Shipment.warehouse.state = "MD"
+                self.Shipment.warehouse.country = "US"
+                self.Shipment.warehouse.street1 = "14812 Burntwoods Road"
+                self.Shipment.warehouse.phone = "4432667788"
+                self.Shipment.warehouse.residential = False
+                self.Shipment.warehouse.name = "Warehouse Location 1"
 
     # Used to help convert to JSON later
     def as_dict(self):

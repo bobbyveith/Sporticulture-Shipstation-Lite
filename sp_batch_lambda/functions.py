@@ -357,7 +357,7 @@ def send_order_to_queue(order_object, sqs_client):
         ValueError: If the shipstation_account is not found in the queue mapping.
     """
 
-    queue_name = 'SporticultureOrderQueue'
+    queue_name = 'SporticultureOrderQueue.fifo'
 
     # Get the URL of the target queue
     queue_url = sqs_client.get_queue_url(QueueName=queue_name)['QueueUrl']
@@ -377,11 +377,16 @@ def send_order_to_queue(order_object, sqs_client):
         }
     }
 
+    # Generate a unique MessageDeduplicationId
+    message_deduplication_id = str(order_object.order_id)  # Assuming order_object has an order_id attribute
+
     # Send the message to the SQS queue
     response = sqs_client.send_message(
         QueueUrl=queue_url,
         MessageBody=message_body,
-        MessageAttributes=message_attributes
+        MessageAttributes=message_attributes,
+        MessageGroupId='987654321', # If all messages have the same group id, they will be processed in order
+        MessageDeduplicationId=message_deduplication_id
     )
 
     # Validate if the message was sent successfully

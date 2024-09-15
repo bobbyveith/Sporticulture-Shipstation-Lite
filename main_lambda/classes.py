@@ -82,7 +82,7 @@ class Shipment:
         if self.ship_date is None:
             self.ship_date = self.get_default_ship_date()
 
-        if self.requested_shipping_service.startswith("Express") or self.requested_shipping_service.startswith("Expedited"):
+        if self.requested_shipping_service and (self.requested_shipping_service.startswith("Express") or self.requested_shipping_service.startswith("Expedited")):
             self.is_expedited = True
 
     @staticmethod

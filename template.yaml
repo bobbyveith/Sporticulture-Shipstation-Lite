@@ -22,52 +22,31 @@ Resources:
   SPFailedOrdersDLQ:
     Type: AWS::SQS::Queue
     Properties:
-      QueueName: FailedOrdersDLQ
+      QueueName: SPFailedOrdersDLQ.fifo  # Updated to FIFO
+      FifoQueue: true  
 
   SporticultureOrderQueue:
     Type: AWS::SQS::Queue
     Properties:
-      QueueName: SporticultureOrderQueue
+      QueueName: SporticultureOrderQueue.fifo  # Updated to FIFO
+      FifoQueue: true 
       VisibilityTimeout: 480
       RedrivePolicy:
         maxReceiveCount: 3
-        deadLetterTargetArn: !GetAtt FailedOrdersDLQ.Arn
-    # Add a policy to allow sending messages to the DLQ
-    QueuePolicy:
+        deadLetterTargetArn: !GetAtt SPFailedOrdersDLQ.Arn
+
+  SporticultureOrderQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+        - !Ref SporticultureOrderQueue  # Corrected reference
       PolicyDocument:
         Version: '2012-10-17'
         Statement:
           - Effect: Allow
             Action: sqs:SendMessage
-            Resource: !GetAtt FailedOrdersDLQ.Arn
+            Resource: !GetAtt SporticultureOrderQueue.Arn  # Corrected resource
             Principal: "*"
-
-  SPBatchLambdaRole:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: lambda.amazonaws.com
-            Action: sts:AssumeRole
-      Policies:
-        - PolicyName: SQSFullAccess
-          PolicyDocument:
-            Version: '2012-10-17'
-            Statement:
-              - Effect: Allow
-                Action: sqs:*
-                Resource: "*"
-        - PolicyName: SecretsManagerAccess
-          PolicyDocument:
-            Version: '2012-10-17'
-            Statement:
-              - Effect: Allow
-                Action:
-                  - secretsmanager:GetSecretValue
-                Resource: "*"
 
   SPBatchLambda:
     Type: AWS::Serverless::Function
@@ -77,41 +56,8 @@ Resources:
       Runtime: python3.12
       Architectures:
       - x86_64
-      ReservedConcurrentExecutions: 1
       Timeout: 480
-      Role: !GetAtt SPBatchLambdaRole.Arn
-
-  SporticultureMainLambdaRole:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: lambda.amazonaws.com
-            Action: sts:AssumeRole
-      Policies:
-        - PolicyName: SQSTriggerPolicy
-          PolicyDocument:
-            Version: '2012-10-17'
-            Statement:
-              - Effect: Allow
-                Action:
-                  - lambda:InvokeFunction
-                Resource: !GetAtt SporticultureMainLambda.Arn
-              - Effect: Allow
-                Action: 
-                  - sqs:*
-                Resource: "*"
-        - PolicyName: SecretsManagerAccess
-          PolicyDocument:
-            Version: '2012-10-17'
-            Statement:
-              - Effect: Allow
-                Action:
-                  - secretsmanager:GetSecretValue
-                Resource: "*"
+      # Removed Role property
 
   SporticultureMainLambda:
     Type: AWS::Serverless::Function
@@ -121,13 +67,12 @@ Resources:
       Runtime: python3.12
       Architectures:
       - x86_64
-      ReservedConcurrentExecutions: 1
       Events:
         SporticultureOrderQueueEvent:
           Type: SQS
           Properties:
-            Queue: arn:aws:sqs:us-east-2:982081062525:SporticultureOrderQueue
-      Role: !GetAtt SporticultureMainLambdaRole.Arn
+            Queue: !GetAtt SporticultureOrderQueue.Arn
+      # Removed Role property
 
   ApplicationResourceGroup:
     Type: AWS::ResourceGroups::Group

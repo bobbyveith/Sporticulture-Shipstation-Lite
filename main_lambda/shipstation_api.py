@@ -46,7 +46,7 @@ class ShipStation(ShipStationBase):
     def api_calls(self, r, *args, **kwargs):
         calls_left = r.headers.get('X-Rate-Limit-Remaining')
         time_left = r.headers.get('X-Rate-Limit-Reset')
-        if int(calls_left) <= 2:
+        if int(calls_left) <= 10:
             time.sleep(int(time_left))
 
     def add_order(self, order):
